@@ -10,6 +10,9 @@ var connect = require('gulp-connect');
 var uglify = require('gulp-uglify');
 var imagemin = require('gulp-imagemin');
 var del = require('del');
+var path = require('path');
+var rename = require('gulp-rename');
+var fileinclude = require('gulp-file-include');
 
 gulp.task('sass', function () {
   gulp.src('./assets/scss/style.scss')
@@ -25,6 +28,18 @@ gulp.task('sass', function () {
     .pipe(gulp.dest('./dist/css'))
 });
 
+gulp.task('build-pages', function () {
+  return gulp.src(path.join('./public/partials/*.part.html'))
+    .pipe(fileinclude())
+    // strip off the .html, then rename .part to .html
+    .pipe(rename({
+      extname: ""
+    }))
+    .pipe(rename({
+      extname: ".html"
+    }))
+    .pipe(gulp.dest('./public/'))
+});
 gulp.task('copy-js-vendors', function () {
   return gulp.src([
       './node_modules/jquery/dist/jquery.min.js',
@@ -42,6 +57,7 @@ gulp.task('copy-css-vendors', function () {
   return gulp.src([
       './node_modules/LykkeFramework/assets/vendor/bootstrap-custom.min.css',
       './node_modules/@fancyapps/fancybox/dist/jquery.fancybox.css',
+      './assets/css/vendor/prism.css'
     ])
     .pipe(gulp.dest('./public/css/vendor'));
 });
@@ -155,6 +171,7 @@ gulp.task('clean', function () {
 });
 
 gulp.task('dev', function () {
+  gulp.start('build-pages');
   gulp.start('sass');
   gulp.start('copy-js-vendors');
   gulp.start('copy-css-vendors');

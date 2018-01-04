@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 ie7"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9 ie8"> <![endif]-->
+<!--[if IE 9]>         <html class="no-js ie9"> <![endif]-->
+<!--[if gt IE 9]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <title>Lykke Exchange Public API – Getting Started</title>
+  @@include('./common/_headincludes.html')
+</head>
+
+<body>
+
+  @@include('./common/_sidebarmenu.html')
+  @@include('./common/_headercontainer.html')
+  @@include('./common/_headernavcontainer.html')
+
+  <article class="content page">
+    <section class="section section--lead section--padding">
+      <div class="container text">
+        <div class="row">
+          <div class="col-sm-8 automargin">
+            <h2>Introduction</h2>
+            
+            <p>Lykke has developed an abstract integration layer to be able to connect any blockchain to the Lykke Wallet platform. The outline and requirements below describe the contract between Lykke Wallet and any given blockchain, and provide the necessary steps for a developer to integrate their token with the platform.</p>  
+            
+            <p>This document might be updated from time to time according to developers feedback. If you have questions or comments, please contact @olegzhelenkov in the <a href="https://t.me/LykkeDev">Lykke Dev</a> telegram chat. </p>
+        
+            <h2>Common requirements</h2>
+            <p>All services which implement the blockchain-specific part of the interface must meet the following constraints:</p>
+            <h3>Technologies</h3>
+            <ul>
+                <li>Source code should be written in one of the given languages: C# (.net Core), Java, C/C++, Javascript (Node), or Python</li>
+                <li>If C# is used, services should be based on the <a href="https://github.com/LykkeCity/lykke.dotnettemplates/tree/master/Lykke.Service.LykkeService" class="external-link" rel="nofollow">LykkeService template</a></li>
+                <li>If persistent storage is needed, Azure Storage should be used</li>
+                <li>If many indexes are needed, MongoDB should be used</li>
+                <li>Caching should be done through Redis</li>
+            </ul>
+            <h3>Application Design</h3>
+            <ul>
+                <li>The application should contain a dedicated repositories layer, in which all interaction with Azure Storage, Mongo DB and Redis should be encapsulated. The rest of the app should depend only on abstractions of these repositories (with an exception for DI container configuration)</li>
+                <li>All atomic idempotent operations with external services (storage, cache, web-services) should be retried in case of transient failures (HTTP status code 400, 409, 412 are not considered transient failures)</li>
+            </ul>
+            <h3>Settings</h3>
+            <ul>
+                <li>The application should read its settings from the URL or local file specified in the SettingsUrl environment variable. The path to the file (URL or local) should be determined automatically<br></li>
+                <li>Settings should be provided in the JSON format</li>
+                <li>Settings should contain a NetworkType field in the root element, if this is applicable for the given blockchain. Available values for this field are: <strong><code>Test</code></strong> and <code><strong>Main</strong></code>.</li>
+                <li>At a minimum, logs and data connection strings should be specified in the different settings fields. More finely-grained separation is at your discretion.</li>
+                <li>When HTTP status code 403 is received as response to an application request to Azure Storage, settings should be reloaded and the request should be repeated</li>
+                <li>If the application is implemented using C#, the <a href="https://github.com/LykkeCity/LykkeSettingsParser" class="external-link" rel="nofollow">Lykke.SettingsReader</a> Nuget package should be used to read the settings</li>
+            </ul>
+            <h3>Logs</h3>
+            <ul>
+                <li>At least Info, Warning, Error and Monitor logging levels should be distinguished in the application</li>
+                <li>The application should log all unhandled failures to the Error logging level</li>
+                <li>All failed requests to the storage or cache (if applicable) should be logged to the Error logging level, with the entity as the context, only after all retries are done</li>
+                <li>The application should log a startup and shutdown message at the Monitor logging level with the messages "Started" and "Terminating" respectively</li>
+                <li>All log entries should be logged on stdout in the format <code>"{time:yyyy-MM-dd HH:mm:ss:fff} [{level}] {action description}:{context} - {message}"</code>
+                <li>All log entries to the Azure Table storage should take the format:
+                    <ul>
+                        <li><strong>DateTime</strong>: DateTime - moment when the entry is logged</li>
+                        <li><strong>Level</strong>: string: {info, warning, error, monitor} - log level of the entry</li>
+                        <li><strong>Env</strong>: string - ENV_INFO environment variable value</li>
+                        <li><strong>Version</strong>: string - version of the app</li>
+                        <li><strong>Component</strong>: string - component, where the entry was logged (usually - class name)</li>
+                        <li><strong>Process</strong>: string - process, in which entry was logged (usually - method name)</li>
+                        <li><strong>Context</strong>: string - any usable data</li>
+                        <li><strong>Type</strong>: string - type of the exception, if any</li>
+                        <li><strong>Stack</strong>: string - call stack of the exception, if any</li>
+                        <li><strong>Message</strong>: string - a message</li>
+                    </ul>
+                </li>
+                <li>The application should log Warning, Error and Monitor levels to the Azure Storage Queue. 
+                    <ul>
+                        <li>The Queue name should be taken from the SlackNotifications.AzureQueue.QueueName settings field</li>
+                        <li>The connection string to the Azure Storage Queue should be taken from the SlackNotifications.AzureQueue.ConnectionString settings field</li>
+                        <li>Messages should be serialized as JSON with the following structure:</li>
+                        <pre><code class="language-javascript">
+  {
+   // for Error, Warning, Monitor log levels respectively
+   "type": "{Errors|Warning|Monitor}",
+
+   // for Error, Warning, Monitor log levels respectively
+   "sender": "{:exclamation:|:warning:|:information_source:}",
+   "message": "a message"
+  }
+                        </code></pre>
+                    </ul>
+                </li>
+            </ul>
+            <ul>
+              <li>
+                  <p>If app is implemented using C#, <a href="https://github.com/LykkeCity/CommonDotNetLibraries">Lykke.Common</a>, <a href="https://github.com/LykkeCity/Lykke.Logs">Lykke.Logs</a> and <a href="https://www.nuget.org/packages/Lykke.SlackNotification.AzureQueue/">Lykke.SlackNotification.AzureQueue</a> Nuget packages should be used to write the logs</p>
+              </li>
+            </ul>
+            <h3>Deployment</h3>
+            <ul>
+                <li>A step-by-step deployment guide should be provided</li>
+            </ul>
+            
+            <h2>Interface</h2>
+            <h3>&lt;BlockchainName&gt;.SignService</h3>
+            <h3>Abstract</h3>
+            <p>This service is used to provide an abstract interface for wallet creation and transaction signing process. It encapsulates private keys and stores them in encrypted form.</p>
+            <h3>Protocol</h3>
+            <p>HTTP REST API</p>
+            <h3>Settings</h3>
+            <ul>
+                <li>Settings should be set in environment variables.</li>
+                <li>Logs connection string and data connection string should be separated.</li>
+                <li>Should be possible to specify test or main network should be used where applicable.</li>
+            </ul>
+            <h3>Methods</h3>
+
+            <h4>[POST] api/wallets</h4>
+            <p>Body: n/a</p>
+            <p>Response: 200 OK</p>
+            <pre><code class="language-javascript">{ privateKey:"string", publicAddress: "string" }</code></pre>
+
+            
+            <h4>[POST] api/sign</h4>
+            <p>Body:</p>
+            <pre><code class="language-javascript"> { "privateKey": "string", "transactionHex": "string"}</code></pre>
+            <p>Response: 200 OK</p>
+            <pre><code class="language-javascript">{ signedTransaction: <signed tx data in hex format> }</code></pre>
+            <p>Error Format:</p>
+            <pre><code class="language-javascript">
+  {
+     "errorMessage": "string",
+     "modelErrors": {"key1": ["error message_1 related to key1", "error message_2 related to key1"],}
+  }
+            </code></pre>
+
+            <h3>&lt;BlockchainName&gt;.API</h3>
+            <h3>Abstract</h3>
+            <p></p>
+            <h3>Protocol</h3>
+            <p>HTTP REST API</p>
+            <h3>Settings</h3>
+            <ul>
+                <li>Settings should be read using HTTP GET requests</li>
+                <li>Settings format:</li>
+                  <pre><code class="language-javascript">
+    &lt;BlockchainName&gt;Api : {
+          SignApiUrl: &lt;url&gt;,
+          SourceWallets: [&lt;walletId1&gt;,&lt;walletId2&gt;],
+          EventsWebHook: &lt;url&gt;,
+
+    …
+    }
+                  </code></pre>
+
+          <h4>[GET] /api/assets</h4>
+          <p>Should return all blockchain assets (coins, tags)</p>
+
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+  {
+   "assets": [
+     {
+       "assetId": "&lt;asset id&gt;",
+       "address": "&lt;asset address (optional)&gt;",
+       "name": "&lt;asset name&gt;",
+       "accuracy": &lt;asset accuracy&gt;
+     }
+   ]
+  }
+          </code></pre>
+
+          <h4>[GET] /api/assets/{assetId}</h4>
+
+          <p>Should return specified asset (coin, tag)</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+  {
+   "assets": [
+     {
+       "assetId": "<asset id>",
+       "address": "<asset address>",
+       "name": "<asset name>",
+       "accuracy": <asset accuracy [1..28]>
+     }
+   ]
+  }
+          </code></pre>
+
+
+          <h4>[GET] api/addresses/{address}/is-valid</h4>
+          <p>Should check and return address</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+    {
+       "isValid": &lt;true|false&gt;
+    }
+          </code></pre>
+
+          <h4>[POST] api/wallets</h4>
+          <p>Should create new wallet and return its address</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+            {
+             "address": "&lt;address&gt;"
+           }
+         </code></pre>
+         <h4>[POST] api/wallets/{address}/cashout</h4>
+         <p>Should transfer fund from the wallet to the specified</p>
+         <p>Body:</p>
+         <pre><code class="language-javascript">
+          {
+           "operationId": "&lt;guid&gt;",
+           "to": "&lt;destination address&gt;",
+           "assetId": "&lt;asset id&gt;",
+           "amount": "&lt;amount string as integer&gt;",
+           "signers": [
+           "&lt;additional transaction signers&gt;"
+           ]
+         }
+         </code></pre>
+         <p>Response:</p>
+         <p>Status code: 200 OK</p>
+
+         <h4>[GET] /api/pending-events/cashin?maxEventsNumber={maxEventsNumber}</h4>
+
+         <p>Should return pending "cashin"</p>
+         <p>Response:</p>
+         <pre><code class="language-javascript">
+  {
+   "events": [
+   "operationId": "&lt;guid&gt;"
+   "timestamp": "&lt;ISO 8601 event moment&gt;",
+   "address": "&lt;destination address&gt;",
+   "assetId": "asset id"
+   "amount": "&lt;amount string as integer&gt;"
+   ]
+  }
+         </code></pre>
+         <h4>[GET] /api/pending-events/cashout-started?maxEventsNumber={maxEventsNumber}</h4>
+         <p>Should return pending "cashout started"</p>
+         <p>Response:</p>
+         <pre><code class="language-javascript">
+  {
+   "events": [
+   "operationId": "&lt;unique operation id&gt;"
+   "timestamp": "&lt;ISO 8601 event moment&gt;",
+   "fromAddress": "&lt;source address&gt;",
+   "assetId": "asset id"
+   "amount": "&lt;amount string as integer&gt;",
+   "toAddress": "destination address",
+   "transactionHash": "transaction hash as base64"
+   ]
+  }
+         </code></pre>
+         <h4>[GET] /api/pending-events/cashout-completed?maxEventsNumber={maxEventsNumber}</h4>
+
+         <p>Should return pending "cashout completed" events</p>
+         <p>Response:</p>
+         <pre><code class="language-javascript">
+  {
+   "events": [
+   "operationId": "&lt;unique operation id&gt;"
+   "timestamp": "&lt;ISO 8601 event moment&gt;",
+   "fromAddress": "&lt;source address&gt;",
+   "assetId": "asset id"
+   "amount": "&lt;amount string as integer&gt;",
+   "toAddress": "destination address",
+   "transactionHash": "transaction hash as base64"
+   ]
+ }
+         </code></pre>
+         <h4>[GET] /api/pending-events/cashout-failed?maxEventsNumber={maxEventsNumber}</h4>
+
+         <p>Should return pending "cashout completed" events</p>
+         <p>Response:</p>
+         <pre><code class="language-javascript">
+  {
+   "events": [
+   "operationId": "&lt;unique operation id&gt;"
+   "timestamp": "&lt;ISO 8601 event moment&gt;",
+   "fromAddress": "&lt;source address&gt;",
+   "assetId": "asset id"
+   "amount": "&lt;amount string as integer&gt;",
+   "toAddress": "destination address"
+   ]
+ }
+        </code></pre>
+        <h4>[DELETE] /api/pending-events/cashin</h4>
+
+        <p>Should remove pending "cashin" events with specified operation ids</p>
+        <p>Body:</p>
+        <pre><code class="language-javascript">
+  {
+   "operationIds": [
+   "&lt;event operation id guid&gt;"
+   ]
+ }
+        </code></pre>
+        <p>Response:</p>
+        <p>Status code: 200 OK</p>
+
+        <h4>[DELETE] /api/pending-events/cashout-started</h4>
+
+        <p>Should remove pending "cashout started" events with specified operation ids</p>
+        <p>Body:</p>
+        <pre><code class="language-javascript">
+  {
+   "operationIds": [
+   "&lt;event operation id guid&gt;"
+   ]
+ }
+        </code></pre>
+        <p>Response:</p>
+        <p>Status code: 200 OK</p>
+
+        <h4>[DELETE] /api/pending-events/cashout-completed</h4>
+
+        <p>Should remove pending "cashout completed" events with specified operation ids</p>
+        <p>Body:</p>
+        <pre><code class="language-javascript">
+  {
+   "operationIds": [
+   "&lt;event operation id guid&gt;"
+   ]
+ }
+        </code></pre>
+        <p>Response:</p>
+        <p>Status code: 200 OK</p>
+
+        <h4>[DELETE] /api/pending-events/cashout-failed</h4>
+
+        <p>Should remove pending "cashout failed" events with specified operation ids</p>
+        <p>Body:</p>
+        <pre><code class="language-javascript">
+  {
+   "operationIds": [
+   "&lt;event operation id guid&gt;"
+   ]
+ }
+        </code></pre>
+        <p>Response:</p>
+
+        <p>Status code: 200 OK</p>
+
+
+            </ul>
+<h2>Example Implementation:</h2>
+<h3>LiteCoin</h3>
+
+<p><a href="https://github.com/LykkeCity/Lykke.Service.LiteCoin.API">https://github.com/LykkeCity/Lykke.Service.LiteCoin.API</a></p>
+<p><a href="https://github.com/LykkeCity/Lykke.Service.LiteCoin.Sign">https://github.com/LykkeCity/Lykke.Service.LiteCoin.Sign</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </article>
+
+  @@include('./common/_footer.html')
+  @@include('./common/_footerscripts.html')
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="main-content" class="wiki-content">
+    <p></p>
+    

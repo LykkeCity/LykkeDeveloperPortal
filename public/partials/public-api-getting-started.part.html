@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 ie7"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9 ie8"> <![endif]-->
+<!--[if IE 9]>         <html class="no-js ie9"> <![endif]-->
+<!--[if gt IE 9]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+  <title>Lykke Exchange Public API – Getting Started</title>
+  @@include('./common/_headincludes.html')
+</head>
+
+<body>
+
+  @@include('./common/_sidebarmenu.html')
+  @@include('./common/_headercontainer.html')
+  @@include('./common/_headernavcontainer.html')
+
+  <article class="content page">
+    <section class="section section--lead section--padding">
+      <div class="container">
+        <div class="row">
+          <div class="col-sm-8 automargin">
+            <h1>Getting Started with the Lykke Exchange Public API</h1>
+
+            <p class="lead text-left">
+              Information from our exchange is available via API. No key is needed, but requests are rate-limited to 60 per minute. More details and a full list of endpoints are available in the <a href="http://public-api.lykke.com">API Docs.</a>
+            </p>
+
+            <h3>Fetching Basic Data</h3>
+            <p class="lead text-left">
+              Let's start by getting the current BTC / USD exchange rate. 
+            </p>
+            <p class="lead text-left">
+              To perform the HTTP requests, the examples will use <code>node-fetch</code>, but any request library will do. In this instance, we want to issue a <code>GET</code> request to the <code>AssetPairs/rate</code> endpoint, appending the asset pair ID to fetch the BTC / USD rate.   
+            </p> 
+            <pre><code class="language-javascript">
+  const fetch = require("node-fetch");
+
+  // URL format is https://public-api.lykke.com/api/AssetPairs/rate/{assetPairId}
+  // For full API details, visit https://public-api.lykke.com/
+  const url = "https://public-api.lykke.com/api/AssetPairs/rate/BTCUSD";
+
+  const getAssetPairRate = async url => {
+    try {
+      const response = await fetch(url);
+      const json = await response.json();
+      console.log(json);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const assetPairRateData = getAssetPairRate(url);
+            </code></pre>  
+          </div>
+        </div>
+      </div>
+    </section>
+  </article>
+
+  @@include('./common/_footer.html')
+  @@include('./common/_footerscripts.html')
+
+</body>
+
+</html>

@@ -1,2 +1,2 @@
-# Lykke Web
-Lykke.com static markup
+# Lykke Developer Portal
+Lykke.com developer portal HTML and CSS

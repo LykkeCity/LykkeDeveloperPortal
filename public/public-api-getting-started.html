@@ -4,7 +4,7 @@
 <!--[if IE 9]>         <html class="no-js ie9"> <![endif]-->
 <!--[if gt IE 9]><!--> <html class="no-js"> <!--<![endif]-->
 <head>
-  <title>Lykke – The Future of Markets</title>
+  <title>Lykke Exchange Public API – Getting Started</title>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   
@@ -244,16 +244,38 @@
       <div class="container">
         <div class="row">
           <div class="col-sm-8 automargin">
-            <h1>Build with Lykke</h1>
+            <h1>Getting Started with the Lykke Exchange Public API</h1>
 
-            <p class="lead text-left ">At Lykke, open-source is part of our DNA. All of our projects and tools are available on <a href="http://github.com/lykkecity">our GitHub</a>, and we encourage our community to make use of everything we've created.</p>
+            <p class="lead text-left">
+              Information from our exchange is available via API. No key is needed, but requests are rate-limited to 60 per minute. More details and a full list of endpoints are available in the <a href="http://public-api.lykke.com">API Docs.</a>
+            </p>
 
-            <p class="lead text-left">We also provide API access to many of our core products and services, so you can build charts, add a token to our exchange, or create tools for high-frequency trading.</p>
+            <h3>Fetching Basic Data</h3>
+            <p class="lead text-left">
+              Let's start by getting the current BTC / USD exchange rate. 
+            </p>
+            <p class="lead text-left">
+              To perform the HTTP requests, the examples will use <code>node-fetch</code>, but any request library will do. In this instance, we want to issue a <code>GET</code> request to the <code>AssetPairs/rate</code> endpoint, appending the asset pair ID to fetch the BTC / USD rate.   
+            </p> 
+            <pre><code class="language-javascript">
+  const fetch = require("node-fetch");
 
-            <p class="lead text-left">Prefer to apply your skills to projects already in process? <a href="http://streams.lykke.com">Lykke Streams</a>, our collaboration platform, has a full list of initiatives and bounties.</p>
+  // URL format is https://public-api.lykke.com/api/AssetPairs/rate/{assetPairId}
+  // For full API details, visit https://public-api.lykke.com/
+  const url = "https://public-api.lykke.com/api/AssetPairs/rate/BTCUSD";
 
-            <p class="lead text-left">Questions? Comments? Visit our dedicated <a href="https://t.me/LykkeDev">developer Telegram channel</a>.</p> 
-            
+  const getAssetPairRate = async url => {
+    try {
+      const response = await fetch(url);
+      const json = await response.json();
+      console.log(json);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const assetPairRateData = getAssetPairRate(url);
+            </code></pre>  
           </div>
         </div>
       </div>
