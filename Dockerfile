@@ -28,4 +28,4 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 # Expose ports
 EXPOSE 80
 
-CMD service nginx start
+CMD ./start.sh
