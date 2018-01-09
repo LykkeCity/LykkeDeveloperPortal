@@ -164,6 +164,7 @@ gulp.task('clean', function () {
   return del([
     'dist/*',
     'public/css/*',
+    'public/*.html',
     'public/js/*',
     'public/img/*',
     'public/fonts/*'
