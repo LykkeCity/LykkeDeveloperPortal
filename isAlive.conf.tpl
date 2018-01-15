@@ -4,11 +4,11 @@ server {
 
   root /var/www/html;
 
-  index index.html index.htm;
+  index index.html;
 
   server_name _;
 
-  location ~ ^/api/isalive$ {
+  location ^~ /api/isalive {
     return 200 '{"Version": "${APP_VERSION}", "Env": "${ENV_INFO}"}';
   }
 

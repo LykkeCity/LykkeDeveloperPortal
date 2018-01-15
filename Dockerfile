@@ -18,11 +18,11 @@ RUN rm -r public/partials
 RUN cp -r public/* /var/www/html
 
 #setup the isAlive endpoint
-ARG APP_VERSION_ARG="0.0.0"
-ARG ENV_INFO_ARG="default"
+ARG APP_VERSION_ARG=0.0.0
+ARG ENV_INFO_ARG=default
 
-ENV APP_VERSION = $APP_VERSION_ARG
-ENV ENV_INFO = $ENV_INFO_ARG
+ENV APP_VERSION $APP_VERSION_ARG
+ENV ENV_INFO $ENV_INFO_ARG
 
 RUN apt-get install -y gettext
 RUN envsubst < isAlive.conf.tpl > /etc/nginx/sites-available/default
