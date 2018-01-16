@@ -21,7 +21,7 @@
           <div class="col-sm-8 automargin">
             <h2>Introduction</h2>
             
-            <p>Lykke has developed an abstract integration layer to be able to connect any blockchain to the Lykke Wallet platform. The outline and requirements below describe the contract between Lykke Wallet and any given blockchain, and provide the necessary steps for a developer to integrate their token with the platform.</p>  
+            <p>Lykke has developed a Blockchain Integration Layer, an abstraction able to connect any blockchain to the Lykke Wallet platform. The outline and requirements below describe the contract between Lykke Wallet and any given blockchain, and provide the necessary steps for a developer to integrate their token with the platform.</p>  
             
             <p>This document might be updated from time to time according to developers feedback. If you have questions or comments, please contact @olegzhelenkov in the <a href="https://t.me/LykkeDev">Lykke Dev</a> telegram chat. </p>
         
@@ -97,7 +97,21 @@
             <ul>
                 <li>A step-by-step deployment guide should be provided</li>
             </ul>
-            
+            <h2>Architecture</h2>
+            <p>The Blockchain Integration Layer affects the following modules:</p>
+            <ul>
+              <li>Common</li>
+              <ul>
+                <li>Lykke Wallet - the platform into which the blockchains are integrated</li>
+              </ul>
+              <li>Blockchain-specific (should be implented for the given blockchain)</li>
+              <ul>
+                <li>Blockchain.SignService - creates the wallets and imlements transaction signing</li>
+                <li>Blockchain.Api - implements a unified adapter to the blockchain node</li>
+              </ul>
+            </ul>
+            <h3>Components</h3>
+            <img src="img/integrating-blockchain-components.png">
             <h2>Interface</h2>
             <h3>&lt;BlockchainName&gt;.SignService</h3>
             <h3>Abstract</h3>
