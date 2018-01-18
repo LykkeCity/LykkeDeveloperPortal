@@ -112,74 +112,184 @@
             </ul>
             <h3>Components</h3>
             <img src="img/integrating-blockchain-components.png">
+            <h3>Client use cases</h3>
+            <img src="img/integrating-blockchain-usecases.png">
+            <h3>Asset flows</h3>
+            <img src="img/integrating-blockchain-assetsflow.png">
+            <h3>Transaction states</h3>
+            <img src="img/integrating-blockchain-transactionstates.png">
+            <h3>Wallet creation</h3>
+            <img src="img/integrating-blockchain-createwallets.png">
+            <h3>Cash-in</h3>
+            <img src="img/integrating-blockchain-cashin.png">
+            <h3>Cash-out</h3>
+            <img src="img/integrating-blockchain-cashout.png">
+            
+            
             <h2>Interface</h2>
-            <h3>&lt;BlockchainName&gt;.SignService</h3>
-            <h3>Abstract</h3>
-            <p>This service is used to provide an abstract interface for wallet creation and transaction signing process. It encapsulates private keys and stores them in encrypted form.</p>
+            <h3>Common</h3>
+            <p>All APIs described below should follow these implementation rules, unless otherwise specified</p>
             <h3>Protocol</h3>
             <p>HTTP REST API</p>
-            <h3>Settings</h3>
+            <h3>General</h3>
             <ul>
-                <li>Settings should be set in environment variables.</li>
-                <li>Logs connection string and data connection string should be separated.</li>
-                <li>Should be possible to specify test or main network should be used where applicable.</li>
+              <li>In case of an error with a 4XX or 5XX HTTP status code, the API should return a response with the following format:
+              <pre><code class="language-javascript">
+  {
+    // General error message, or summary
+    // Can be empty
+    "errorMessage": "string",
+ 
+    // Errors related to the input model
+    // Can be empty
+    "modelErrors": {
+ 
+        // Collection of errors, related to a 
+        // particular field of the input model
+        "&lt;field-name&gt;": [            
+            "string",
+            ...
+        ]
+    }
+
+  }
+                        </code></pre>
+              </li>
+              <li>APIs should use the following HTTP status codes:</li>
+              <ul>
+                <li>200 OK - request was completed successfully</li>
+                <li>400 Bad Request - invalid input data</li>
+                <li>500 Internal Server Error - all other server errors</li>
+              </ul>
             </ul>
+            <h3>Methods</h3>
+            <h4>[GET] /api/isalive</h4>
+
+          <p>Should return general service information. Used to check if the service is running.</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+  {
+    // Name of the service
+    "name": "string",
+    // Version of the service
+    "version": "string",
+    // ENV_INFO environment variable value
+    "env": "string",
+    // Flag, which indicates if the service is built 
+    // with the debug configuration or not
+    "isDebug": boolean
+}
+
+          </code></pre>
+
+            <h3>&lt;BlockchainName&gt;.SignService</h3>
+            <h3>Abstract</h3>
+            <ul>
+              <li>This service should implement the abstract interface for the wallets (address) creation and transaction signing for the blockchain to be integrated.</li> 
+              <li>The service shouldn’t store any sensitive data, such as addresses or private keys.</li>
+              <li>The service shouldn’t depend on the blockchain node.</li>
+              <li>The service will be invoked by the Lykke platform to provide blockchain integration.</li>
+            </ul>
+              
             <h3>Methods</h3>
 
             <h4>[POST] api/wallets</h4>
+            <p>This method should create a new wallet (address) in the blockchain. This is a deposit wallet and it will be used as the client's personal transit address to detect cashin events. This address will be displayed to the user in the app as the QR-code. The address should be able to receive funds, after a cashin event the funds will be transferred to the hot wallet.</p>
+
             <p>Body: n/a</p>
             <p>Response: 200 OK</p>
-            <pre><code class="language-javascript">{ privateKey:"string", publicAddress: "string" }</code></pre>
+             <pre><code class="language-javascript">
+  {
+    // Private key, which will be used by Lykke platform to
+    // sign transactions by the [POST] /api/sign
+    "privateKey": "string",
+    // Address which identifies the wallet in the blockchain
+    "publicAddress": "string",
+}
+
+          </code></pre>
 
             
             <h4>[POST] api/sign</h4>
+            <p>Should sign the given transaction with the given private key</p>
             <p>Body:</p>
-            <pre><code class="language-javascript"> { "privateKey": "string", "transactionHex": "string"}</code></pre>
-            <p>Response: 200 OK</p>
-            <pre><code class="language-javascript">{ signedTransaction: <signed tx data in hex format> }</code></pre>
-            <p>Error Format:</p>
             <pre><code class="language-javascript">
-  {
-     "errorMessage": "string",
-     "modelErrors": {"key1": ["error message_1 related to key1", "error message_2 related to key1"],}
-  }
+{
+    // Private keys, which were returned by the 
+    // [POST] /api/wallets. Multiple keys can be used
+    // for transactions with multiple inputs 
+    "privateKeys": [
+        "string"
+    ],
+ 
+    // The transaction context in the blockchain- 
+    // specific format, which was returned by the
+    // Blockchain.Api class
+    // [POST] /api/transactions or [PUT] /api/transactions
+    "transactionContext": "string"
+ }
+
             </code></pre>
+            <p>Response: 200 OK</p>
+            <pre><code class="language-javascript">
+{
+    // Signed transaction, which will be used to broadcast 
+    // the transaction by the Blockchain.Api service
+    // [PUT] /api/transactions/broadcast
+    "signedTransaction": "string"
+}
+
+            </code></pre>
+            
 
             <h3>&lt;BlockchainName&gt;.API</h3>
             <h3>Abstract</h3>
-            <p></p>
-            <h3>Protocol</h3>
-            <p>HTTP REST API</p>
-            <h3>Settings</h3>
             <ul>
-                <li>Settings should be read using HTTP GET requests</li>
-                <li>Settings format:</li>
-                  <pre><code class="language-javascript">
-    &lt;BlockchainName&gt;Api : {
-          SignApiUrl: &lt;url&gt;,
-          SourceWallets: [&lt;walletId1&gt;,&lt;walletId2&gt;],
-          EventsWebHook: &lt;url&gt;,
-
-    …
-    }
-                  </code></pre>
-
-          <h4>[GET] /api/assets</h4>
-          <p>Should return all blockchain assets (coins, tags)</p>
+              <li>This service should implement the abstract interface for transaction management, balance monitoring and utility functions for the new blockchain.</li>
+              <li>The service should use the blockchain node to implement given interface.</li>
+              <li>The service can store any intermediate data in the persistent storage or in the cache to provide functional and non-functional requirements.</li>
+              <li>The service will be invoked by the Lykke platform to provide blockchain integration.</li>
+            </ul>
+            <h3>Methods</h3>
+            
+          <h4>[GET] /api/assets?take=integer&amp;[continuation=string]</h4>
+          <p>Should return batch blockchain assets (coins, tags). Amount of the returned assets should not exceed the value of the <code>take</code> parameter. Optional <code>continuation</code> parameter should contain the context of the previous request, to let Blockchain.Api resume reading of the assets from the previous position. If <code>continuation</code> is empty, assets should be read from the beginning.</p>
 
           <p>Response:</p>
           <pre><code class="language-javascript">
   {
-   "assets": [
-     {
-       "assetId": "&lt;asset id&gt;",
-       "address": "&lt;asset address (optional)&gt;",
-       "name": "&lt;asset name&gt;",
-       "accuracy": &lt;asset accuracy&gt;
-     }
-   ]
-  }
+    // Continuation token, that
+    // can be used to continue data reading
+    // from the current position.
+    // Should be null or empty string if no more data
+    // to read.
+    "continuation": "string",
+ 
+    // Current batch of the items
+    // Should be empty array if there are no items
+    "items": 
+    [
+        {
+            // Asset ID
+            "assetId": "string",
+ 
+            // Asset address, which identifies an asset in the blockchain, 
+            // if applicable for the given blockchain. Can be empty.
+            "address": "string",
+ 
+            // Asset display name
+            "name": "string",
+ 
+            // Asset accuracy - maximum number of significant decimal digits 
+            // to the right of the decimal point in the asset amount.
+            // Valid range: [0..28]
+            "accuracy": integer
+        }
+    ]
+}
+
           </code></pre>
+
 
           <h4>[GET] /api/assets/{assetId}</h4>
 
@@ -187,172 +297,332 @@
           <p>Response:</p>
           <pre><code class="language-javascript">
   {
-   "assets": [
-     {
-       "assetId": "<asset id>",
-       "address": "<asset address>",
-       "name": "<asset name>",
-       "accuracy": <asset accuracy [1..28]>
-     }
-   ]
-  }
-          </code></pre>
+    // Asset ID
+    "assetId": "string",
+    
+    // Asset address, which identifies 
+    // asset in the blockchain, if applicable.
+    // Can be empty
+    "address": "string",
+ 
+    // Asset display name
+    "name": "string",
+ 
+    // Asset accuracy - maximum number
+    // of significant decimal digits to the right 
+    // of the decimal point in the asset amount.
+    // Valid range: [0..28]
+    "accuracy": "integer"
+}
 
+          </code></pre>
+          <p>Errors:</p>
+          <ul>
+            <li>204 No Content - specified asset not found</li>
+          </ul>
 
           <h4>[GET] api/addresses/{address}/is-valid</h4>
-          <p>Should check and return address</p>
+          <p>Should check and return wallet address validity</p>
           <p>Response:</p>
           <pre><code class="language-javascript">
     {
+      // Flag, which indicates whether or not the address is valid
        "isValid": &lt;true|false&gt;
     }
           </code></pre>
 
-          <h4>[POST] api/wallets</h4>
-          <p>Should create new wallet and return its address</p>
+          <h4>[POST] /api/balances/{address}/observation</h4>
+          <p>Should remember the wallet address to observe the wallet balance
+          and return it in the [GET] /api/balances if the balance is nonzero.</p>
+          <p>Errors:</p>
+          <ul>
+            <li>409 Conflict - specified address is already observed.</li>
+          </ul>
+
+          <h4>[DELETE] /api/balances/{address}/observation</h4>
+          <p>Should forget the wallet address and stop observing its balance.</p>
+          <p>Errors:</p>
+          <ul>
+            <li>204 No content - specified address is not observed.</li>
+          </ul>
+
+          <h4>[GET] /api/balances?take=integer&amp;[continuation=string]</h4>
+          <p>Should return balances of the observed wallets, as long as the wallets have nonzero balances. Balance observation is enabled by the [POST] /api/balances/{address}/observation and disabled by the [DELETE] /api/balances/{address}/observation.</p>
+          <p>The number of returned wallets should not exceed take. The optional continuation parameter contains context of the previous request, to let Blockchain.Api resume reading the balances from the previous position. If continuation is empty, balances should be read from the beginning.</p>
           <p>Response:</p>
           <pre><code class="language-javascript">
-            {
-             "address": "&lt;address&gt;"
-           }
-         </code></pre>
-         <h4>[POST] api/wallets/{address}/cashout</h4>
-         <p>Should transfer fund from the wallet to the specified</p>
-         <p>Body:</p>
-         <pre><code class="language-javascript">
-          {
-           "operationId": "&lt;guid&gt;",
-           "to": "&lt;destination address&gt;",
-           "assetId": "&lt;asset id&gt;",
-           "amount": "&lt;amount string as integer&gt;",
-           "signers": [
-           "&lt;additional transaction signers&gt;"
-           ]
-         }
-         </code></pre>
-         <p>Response:</p>
-         <p>Status code: 200 OK</p>
+{
+    // Continuation token, that
+    // can be used to continue data reading
+    // from the current position.
+    // Should be null or empty string if no more data
+    // to read.
+    "continuation": "string",
+ 
+    // Current batch of the items
+    // Should be an empty array if there are no items
+    "items":
+    [
+        {
+            // Wallet address
+            "address": "string",
+ 
+            // Asset ID
+            "assetId": "string",
+ 
+            // Balance is integer as string, aligned 
+            // to the asset accuracy. Actual value can be 
+            // calculated as 
+            // x = sourceBalance * (10 ^ asset.Accuracy)
+            "balance": "string"
+        }
+    ]
+}
 
-         <h4>[GET] /api/pending-events/cashin?maxEventsNumber={maxEventsNumber}</h4>
+          </code></pre>
 
-         <p>Should return pending "cashin"</p>
-         <p>Response:</p>
-         <pre><code class="language-javascript">
-  {
-   "events": [
-   "operationId": "&lt;guid&gt;"
-   "timestamp": "&lt;ISO 8601 event moment&gt;",
-   "address": "&lt;destination address&gt;",
-   "assetId": "asset id"
-   "amount": "&lt;amount string as integer&gt;"
-   ]
-  }
-         </code></pre>
-         <h4>[GET] /api/pending-events/cashout-started?maxEventsNumber={maxEventsNumber}</h4>
-         <p>Should return pending "cashout started"</p>
-         <p>Response:</p>
-         <pre><code class="language-javascript">
-  {
-   "events": [
-   "operationId": "&lt;unique operation id&gt;"
-   "timestamp": "&lt;ISO 8601 event moment&gt;",
-   "fromAddress": "&lt;source address&gt;",
-   "assetId": "asset id"
-   "amount": "&lt;amount string as integer&gt;",
-   "toAddress": "destination address",
-   "transactionHash": "transaction hash as base64"
-   ]
-  }
-         </code></pre>
-         <h4>[GET] /api/pending-events/cashout-completed?maxEventsNumber={maxEventsNumber}</h4>
+          <h4>[POST] /api/transactions</h4>
+          <p>Should build an unsigned transaction. If a transaction with the specified operationId has already been built, it should be ignored and regular response (as in the first request) should be returned.</p>
+          <p>Body:</p>
+          <pre><code class="language-javascript">
+{
+    // Lykke unique operation ID
+    "operationId": "guid",
+ 
+    // Source address
+    "fromAddress": "string",
+ 
+    // Destination address
+    "toAddress": "string",
+ 
+    // Asset ID to transfer
+    "assetId": "string",
+    
+    // Amount to transfer. Integer as string, aligned 
+    // to the asset accuracy. Actual value can be 
+    // calculated as 
+    // x = amount / (10 ^ asset.Accuracy) 
+    "amount": "string",
+ 
+    // Flag which indicates whether or not the fee 
+    // should be included in the specified amount
+    "includeFee": "boolean"
+}
+          </code></pre>    
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+{
+    // The transaction context in the blockchain 
+    // specific format, which will be passed to the
+    // Blockchain.SignService [POST] /api/sign
+    "transactionContext": "string"
+}
+          </code></pre>
+          <p>Errors:</p>
+          <ul>
+            <li>406 Not Acceptable - transaction can’t be built due to an unacceptable amount (e.g. too small).</li>
+          </ul>
 
-         <p>Should return pending "cashout completed" events</p>
-         <p>Response:</p>
-         <pre><code class="language-javascript">
-  {
-   "events": [
-   "operationId": "&lt;unique operation id&gt;"
-   "timestamp": "&lt;ISO 8601 event moment&gt;",
-   "fromAddress": "&lt;source address&gt;",
-   "assetId": "asset id"
-   "amount": "&lt;amount string as integer&gt;",
-   "toAddress": "destination address",
-   "transactionHash": "transaction hash as base64"
-   ]
- }
-         </code></pre>
-         <h4>[GET] /api/pending-events/cashout-failed?maxEventsNumber={maxEventsNumber}</h4>
+          <h4>[PUT] /api/transactions</h4>
 
-         <p>Should return pending "cashout completed" events</p>
-         <p>Response:</p>
-         <pre><code class="language-javascript">
-  {
-   "events": [
-   "operationId": "&lt;unique operation id&gt;"
-   "timestamp": "&lt;ISO 8601 event moment&gt;",
-   "fromAddress": "&lt;source address&gt;",
-   "assetId": "asset id"
-   "amount": "&lt;amount string as integer&gt;",
-   "toAddress": "destination address"
-   ]
- }
-        </code></pre>
-        <h4>[DELETE] /api/pending-events/cashin</h4>
+          <p>Should rebuild an unsigned transaction with the specified fee factor, if applicable for the given blockchain. This should be implemented, if blockchain allows transaction rebuilding (substitution) with a new fee.</p>
+          <p>This will be called if a transaction is stuck in the "in-progress" state for too long, to attempt to execute the transaction with a higher fee. [POST] /api/transactions with the same operationId should precede the call to this method. Transaction should be rebuilt with parameters that were passed to the [POST] /api/transactions.</p>
+          <p>Body:</p>
+          <pre><code class="language-javascript">
+{
+    // Lykke unique operation ID
+    "operationId": "guid",
+ 
+    // Multiplier for the original transaction fee. 
+    // Blockchain should multiply the original fee
+    // by this factor.
+    // x = feeFactor * regularFee
+    "feeFactor": float
+}
+          </code></pre>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+{
+    // The transaction context in the blockchain 
+    // specific format, which will be passed to the
+    // Blockchain.SignService [POST] /api/sign
+    "transactionContext": "string"
+}
+          </code></pre>
+          <p>Errors:</p>
+          <ul>
+            <li>501 Not Implemented - function is not implemented in the blockchain.</li>
+            <li>406 Not Acceptable - transaction can’t be built due to an unacceptable amount (e.g. too small).</li>
+          </ul>
+          <h4>[POST] /api/transactions/broadcast</h4>
+          <p>Should broadcast the signed transaction.</p>
+          <p>Body:</p>
+          <pre><code class="language-javascript">
+{
+    // Lykke unique operation ID
+    "operationId": "guid",
+ 
+    // The signed transaction returned by the
+    // Blockchain.SignService [POST] /api/sign
+    "signedTransaction": "string"
+}
+          </code></pre>
+          <p>Errors:</p>
+          <ul>
+            <li>409 Conflict - transaction with specified operationId and signedTransaction has already been broadcasted.</li>
+          </ul>
+          <h4>[GET] /api/transactions/broadcast/{operationId}</h4>
+          <p>Should return the broadcasted transactions with the given operationId. All transactions broadcasted by the [POST] /api/transactions/broadcast should be available here.</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+{
+    // Lykke unique operation ID.
+    "operationId": "guid",
+ 
+    // State of the transaction
+    // enum values:
+    // - inProgress: transaction is being in-progress
+    // - completed: transaction is completed for sure
+    // - failed: transaction is failed, if applicable for the
+    //     particular blockchain
+    "state": "enum",
+ 
+    // Transaction timestamp, formatted as ISO 8601 in UTC
+    "timestamp": "datetime",
+ 
+    // Amount, excluding the fee.
+    // Integer as string, aligned to the asset accuracy. 
+    // Actual value can be calculated as 
+    // x = sourceAmount * (10 ^ asset.Accuracy)
+    // Should be non empty if the state is Completed
+    "amount": "string",
+ 
+    // Fee. Integer as string, aligned 
+    // to the asset accuracy. Actual value can be 
+    // calculated as 
+    // x = sourceFee * (10 ^ asset.Accuracy)
+    // Should be non empty if the state is Completed
+    "fee": "string",
+ 
+    // Transaction hash as base64 string.
+    // Can be empty
+    // Should be non empty if the state is Completed
+    "hash": "string",
+ 
+    // Error description
+    // Can be empty
+    // Should be non empty if the state is Error
+    "error": "string"
+}
+          </code></pre>
+          <p>Errors:</p>
+          <ul>
+            <li>204 No content - specified transaction not found</li>
+          </ul>
+          <h4>[DELETE] /api/transactions/broadcast/{operationId}</h4>
+          <p>Should remove specified transaction from the broadcasted transactions. Should affect transactions returned by the [GET] /api/transactions/broadcast/{operatioId}.</p>
+              <p>Errors:</p>
+          <ul>
+            <li>204 No content - specified transaction not found</li>
+          </ul>
+          <h4>[POST] /api/transactions/history/from/{address}/observation</h4>
+          <p>Should start observation of the transactions that transfer fund from the address. Should affect result of the [GET] /api/transactions/history/from/{address}.</p>
+          <p>Errors:</p>
+          <ul>
+            <li>409 Conflict: transactions from the address are already observed.</li>
+          </ul>
+          <h4>[POST] /api/transactions/history/to/{address}/observation</h4>
+          <p>Should start observation of the transactions that transfer funds to the specified address. Should affect result of the [GET] /api/transactions/history/to/{address}.</p>
+          <p>Errors:</p>
+          <ul>
+          <li>409 Conflict: transactions to the address are already observed.</li>
+          </ul>
+          <h4>[GET] /api/transactions/history/from/{address?take=integer&amp;[afterHash=string]</h4>
+          <p>Should return completed transactions that transfer funds from the specified address and that were broadcasted after the transaction with the hash equal to the afterHash.</p>
+          <p>If afterHash is empty, transactions should be read from the beginning.
+          Should include transactions broadcasted not using this API.
+          If there are no transactions to return, an empty array should be returned.
+          Amount of the returned transactions should not exceed the take parameter.</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+[
+    {
+        // Lykke unique operation ID.
+        // Can be empty.
+        // Should be not empty for transactions that
+        // broadcasted using this Blockchain.Api
+        "operationId": "guid",
+ 
+        // Transaction moment as ISO 8601 in UTC
+        "timestamp": "datetime",
+ 
+        // Source address
+        "fromAddress": "string",
+ 
+        // Destination address
+        "toAddress": "string",
+ 
+        // Asset ID
+        "assetId": "string"
+ 
+        // Amount without fee. Is integer as string, aligned 
+        // to the asset accuracy. Actual value can be 
+        // calculated as 
+        // x = sourceAmount * (10 ^ asset.Accuracy)
+        "amount": "string",
+ 
+        // Transaction hash as base64 string
+        "hash": "string"
+    }
+]
+          </pre></code>
+ 
+          <h4>[GET] /api/transactions/history/to/{address}/?take=integer&amp;[afterHash=string]</h4>
+          <p>Should return completed transactions that transfer funds to the speicfied address and that were broadcasted after the transaction with the hash equal to the afterHash.</p>
+          <p>If afterHash is empty, transactions should be read from the beginning.
+          Should include transactions broadcasted not using this API.
+          If there are no transactions to return, an empty array should be returned.
+          Amount of the returned transactions should not exceed the take parameter.</p>
+          <p>Response:</p>
+          <pre><code class="language-javascript">
+[
+    {
+        // Lykke unique operation ID.
+        // Can be empty.
+        // Should be not empty for transactions that
+        // broadcasted using this Blockchain.Api
+        "operationId": "guid",
+ 
+        // Transaction moment as ISO 8601 in UTC
+        "timestamp": "datetime",
+ 
+        // Source address
+        "fromAddress": "string",
+ 
+        // Destination address
+        "toAddress": "string",
+ 
+        // Asset ID
+        "assetId": "string"
+ 
+        // Amount without fee. Is integer as string, aligned 
+        // to the asset accuracy. Actual value can be 
+        // calculated as 
+        // x = sourceAmount * (10 ^ asset.Accuracy)
+        "amount": "string",
+ 
+        // Transaction hash as base64 string
+        "hash": "string"
+    }
+]
+</code></pre>
 
-        <p>Should remove pending "cashin" events with specified operation ids</p>
-        <p>Body:</p>
-        <pre><code class="language-javascript">
-  {
-   "operationIds": [
-   "&lt;event operation id guid&gt;"
-   ]
- }
-        </code></pre>
-        <p>Response:</p>
-        <p>Status code: 200 OK</p>
 
-        <h4>[DELETE] /api/pending-events/cashout-started</h4>
 
-        <p>Should remove pending "cashout started" events with specified operation ids</p>
-        <p>Body:</p>
-        <pre><code class="language-javascript">
-  {
-   "operationIds": [
-   "&lt;event operation id guid&gt;"
-   ]
- }
-        </code></pre>
-        <p>Response:</p>
-        <p>Status code: 200 OK</p>
 
-        <h4>[DELETE] /api/pending-events/cashout-completed</h4>
 
-        <p>Should remove pending "cashout completed" events with specified operation ids</p>
-        <p>Body:</p>
-        <pre><code class="language-javascript">
-  {
-   "operationIds": [
-   "&lt;event operation id guid&gt;"
-   ]
- }
-        </code></pre>
-        <p>Response:</p>
-        <p>Status code: 200 OK</p>
 
-        <h4>[DELETE] /api/pending-events/cashout-failed</h4>
 
-        <p>Should remove pending "cashout failed" events with specified operation ids</p>
-        <p>Body:</p>
-        <pre><code class="language-javascript">
-  {
-   "operationIds": [
-   "&lt;event operation id guid&gt;"
-   ]
- }
-        </code></pre>
-        <p>Response:</p>
-
-        <p>Status code: 200 OK</p>
 
 
             </ul>
